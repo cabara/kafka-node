@@ -1,25 +1,26 @@
-var kafka = require('../kafka'),
-    Producer = kafka.Producer,
-    Client = kafka.Client,
-    client = new Client();
-
+var kafka = require('..');
+var Producer = kafka.Producer;
+var KeyedMessage = kafka.KeyedMessage;
+var Client = kafka.Client;
+var client = new Client('localhost:2181');
 var argv = require('optimist').argv;
 var topic = argv.topic || 'topic1';
 var p = argv.p || 0;
-var count = argv.count || 1, rets = 0;
-var producer = new Producer(client);
+var a = argv.a || 0;
+var producer = new Producer(client, { requireAcks: 1 });
 
 producer.on('ready', function () {
-   send('hello');
+    var message = 'a message';
+    var keyedMessage = new KeyedMessage('keyed', 'a keyed message');
+
+    producer.send([
+        { topic: topic, partition: p, messages: [message, keyedMessage], attributes: a }
+    ], function (err, result) {
+        console.log(err || result);
+        process.exit();
+    });
 });
 
-function send(message) {
-    for (var i = 0; i < count; i++) {
-        producer.send([
-            {topic: topic, messages: [message] , partition: p}
-        ], function (err, data) {
-            if (err) console.log(arguments);
-            if (++rets === count) process.exit();
-        });
-    }
-}
+producer.on('error', function (err) {
+    console.log('error', err)
+});
